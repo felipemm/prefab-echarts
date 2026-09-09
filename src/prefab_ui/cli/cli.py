@@ -541,6 +541,11 @@ def build_docs() -> None:
             ["uv", "run", str(build_dir / "extract_examples.py")],
             None,
         ),
+        (
+            "Compiling theme presets",
+            ["uv", "run", str(build_dir / "generate_theme_presets.py")],
+            None,
+        ),
     ]
 
     if rebuild_playground:
@@ -674,6 +679,11 @@ def build_playground() -> None:
         (
             "Extracting playground examples",
             ["uv", "run", str(build_dir / "extract_examples.py")],
+            None,
+        ),
+        (
+            "Compiling theme presets",
+            ["uv", "run", str(build_dir / "generate_theme_presets.py")],
             None,
         ),
         (
