@@ -63,13 +63,6 @@ _MYSPACE_CSS = f"""\
   color: #39ff14;
   padding: 1.5rem;
 }}
-/* The app root is content-sized, so the star field would stop where the
-   content does. Standalone pages have a body to carry it the rest of the way;
-   inside a shadow-DOM preview this rule matches nothing and is harmless. */
-body {{
-  background-color: #0a0a0a;
-  background-image: {_STAR_TILE};
-}}
 
 h1, h2, h3, h4,
 .pf-card-title {{

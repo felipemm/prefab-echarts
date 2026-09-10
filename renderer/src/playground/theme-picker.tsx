@@ -21,13 +21,20 @@ interface Preset {
   css: string;
   /** Color of the swatch dot, or null for the "Code" entry. */
   swatch: string | null;
+  /** Color scheme the theme forces, or null if it follows the toggle. */
+  mode: "light" | "dark" | null;
 }
 
-const PRESETS: Preset[] = presets;
+// TypeScript widens the JSON's string literals, so `mode` arrives as `string`.
+const PRESETS: Preset[] = presets as Preset[];
 
 interface ThemePickerProps {
   value: string;
-  onChange: (css: string) => void;
+  /**
+   * `mode` is set only for themes that force a color scheme, so selecting one
+   * matches how `PrefabApp(theme=...)` renders it in production.
+   */
+  onChange: (css: string, mode: "light" | "dark" | null) => void;
 }
 
 export function ThemePicker({ value, onChange }: ThemePickerProps) {
@@ -54,7 +61,7 @@ export function ThemePicker({ value, onChange }: ThemePickerProps) {
           {PRESETS.map((preset) => (
             <button
               key={preset.name}
-              onClick={() => onChange(preset.css)}
+              onClick={() => onChange(preset.css, preset.mode)}
               className={`inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs transition-colors ${
                 activePreset?.name === preset.name
                   ? "border-primary bg-primary/10 text-primary"
@@ -76,7 +83,7 @@ export function ThemePicker({ value, onChange }: ThemePickerProps) {
         </div>
         <textarea
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => onChange(e.target.value, null)}
           placeholder={`:root {\n  --primary: oklch(0.6 0.24 260);\n}`}
           className="h-[160px] w-full rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
           spellCheck={false}

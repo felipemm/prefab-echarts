@@ -44,6 +44,10 @@ def main() -> None:
             "name": name,
             "css": theme.to_css() if theme is not None else "",
             "swatch": swatch,
+            # Windows2000 and MySpace force a color scheme. Executed code
+            # already applies it via the app's wire format; picking the preset
+            # bypasses execution, so the picker needs it here too.
+            "mode": theme.to_json().get("mode") if theme is not None else None,
         }
         for name, theme, swatch in PRESETS
     ]

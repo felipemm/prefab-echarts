@@ -2,9 +2,18 @@
 
 from __future__ import annotations
 
+import pytest
+
 from prefab_ui.app import PrefabApp
 from prefab_ui.components import Text
-from prefab_ui.themes import Basic, MySpace, Presentation, Theme, Windows2000
+from prefab_ui.themes import (
+    Basic,
+    Minimal,
+    MySpace,
+    Presentation,
+    Theme,
+    Windows2000,
+)
 
 
 class TestThemeModel:
@@ -343,6 +352,11 @@ class TestMySpaceTheme:
         ):
             assert cls in css
 
+    def test_star_field_covers_the_app_root(self):
+        """The tile rides on .pf-app-root rather than a global `body` rule —
+        see TestThemeContainment."""
+        assert ".pf-app-root {" in MySpace().css
+
     def test_star_field_is_inlined_not_fetched(self):
         """The tile is a data URI, so it works offline and in shadow DOM.
         (The `http://www.w3.org/2000/svg` inside it is the XML namespace,
@@ -364,6 +378,29 @@ class TestMySpaceTheme:
     def test_dark_matches_light(self):
         result = MySpace().to_json()
         assert result["light"] == result["dark"]
+
+
+class TestThemeContainment:
+    """A theme styles the app it is applied to, and nothing around it.
+
+    The playground injects theme CSS into the host document and only rewrites
+    `:root` and `.dark` (see `scopeThemeCss`), so a rule targeting `body` or
+    `html` escapes the preview and restyles the editor and toolbar.
+    """
+
+    @pytest.mark.parametrize(
+        "theme",
+        [Basic(accent=260), Minimal(), Presentation(), Windows2000(), MySpace()],
+        ids=lambda t: type(t).__name__,
+    )
+    def test_no_document_level_selectors(self, theme: Theme):
+        rules = [
+            line.split("{")[0].strip()
+            for line in theme.to_json()["css"].splitlines()
+            if "{" in line
+        ]
+        offenders = [r for r in rules if r in ("body", "html", "html, body", "*")]
+        assert offenders == []
 
 
 class TestRetroThemesInApp:
