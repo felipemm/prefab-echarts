@@ -47,12 +47,28 @@ Conflicts are expected only in the files listed above.
 ## The renderer and `prefab-ui` stay in lockstep
 
 The **wire format is the contract** between the Python package and the renderer.
-A renderer built from one version against a `prefab-ui` of another fails
-**silently**, not loudly, so the pin is checked rather than assumed:
+A renderer built from one commit against a `prefab-ui` from another fails
+**silently**, not loudly, so the relationship is checked rather than assumed.
+
+Installing `prefab-ui` from this fork yields a dev version carrying the commit it
+was built from, for example `0.20.3.dev5+6be8449`. That SHA — not the number — is
+the thing to check:
 
 ```bash
-make lockstep PREFAB_UI=0.20.2
+make lockstep PREFAB_UI=0.20.3.dev5+6be8449
 ```
+
+Consume both halves at the same commit — the Python package by pinning the git
+URL, the renderer by building from that commit and serving it via
+`PREFAB_RENDERER_URL`:
+
+```toml
+"prefab-ui @ git+https://github.com/<you>/prefab-echarts@<commit>"
+```
+
+Installing `prefab-ui` from PyPI is **not** equivalent: the published package has
+no `showLabels` field, and because pydantic's default is `extra="ignore"`,
+passing it would be dropped silently rather than raising.
 
 ## Adding a wire property
 

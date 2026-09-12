@@ -69,18 +69,24 @@ generate-schemas: ## Regenerate the wire fixtures + manifest from the Python mod
 check: test test-py schema-check build ## The gate: renderer + Python tests, schema freshness, both artifacts
 
 .PHONY: lockstep
-lockstep: ## Verify the pinned version matches an installed prefab-ui: make lockstep PREFAB_UI=0.20.2
-	@echo "pinned in this fork : $$(cat $(VERSION_FILE) 2>/dev/null || echo '(unset)')"
-	@if [ -n "$(PREFAB_UI)" ]; then \
-		if [ "$$(cat $(VERSION_FILE))" = "$(PREFAB_UI)" ]; then \
-			echo "installed prefab-ui  : $(PREFAB_UI)"; echo "✓ in lockstep"; \
-		else \
-			echo "installed prefab-ui  : $(PREFAB_UI)"; \
-			echo "✗ MISMATCH — the renderer and prefab-ui must be the same version"; exit 1; \
-		fi; \
-	else \
-		echo "(pass PREFAB_UI=<version> to compare against an installed prefab-ui)"; \
-	fi
+lockstep: ## Verify an installed prefab-ui came from this fork commit: make lockstep PREFAB_UI=<installed version>
+	@pinned=$$(cat $(VERSION_FILE) 2>/dev/null || echo '(unset)'); \
+	 head=$$(git rev-parse --short $(PATCH_BRANCH)); \
+	 echo "pinned upstream : $$pinned"; \
+	 echo "fork commit     : $$head"; \
+	 if [ -z "$(PREFAB_UI)" ]; then \
+	   echo "(pass PREFAB_UI=<installed version> to check it was built from this commit)"; \
+	   exit 0; \
+	 fi; \
+	 echo "installed       : $(PREFAB_UI)"; \
+	 case "$(PREFAB_UI)" in \
+	   *+$$head) echo "✓ lockstep OK — prefab-ui was built from this fork commit"; \
+	     ;; \
+	   *) echo "✗ MISMATCH — the renderer and prefab-ui must come from the same fork commit"; \
+	      echo "  expected a local version ending in +$$head"; \
+	      exit 1 \
+	     ;; \
+	 esac
 
 # ---------------------------------------------------------------- build
 
