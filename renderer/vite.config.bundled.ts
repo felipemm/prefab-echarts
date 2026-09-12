@@ -24,9 +24,15 @@ export default defineConfig({
     __LOCAL_BUNDLE__: true,
   },
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+    // ECharts-backed chart layer. `@` must resolve first so the chart rule only
+    // ever sees the literal relative specifier used by components/registry.ts.
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+      {
+        find: "./charts",
+        replacement: path.resolve(__dirname, "./src/echarts/charts.tsx"),
+      },
+    ],
   },
   build: {
     outDir: "dist/bundled",
