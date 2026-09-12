@@ -43,8 +43,9 @@ help: ## Show this help
 # ---------------------------------------------------------------- setup
 
 .PHONY: install
-install: ## Install renderer dependencies (npm ci)
+install: ## Install dependencies (npm ci for the renderer, uv sync for Python)
 	$(NPM) ci --no-audit --no-fund
+	uv sync
 
 # ---------------------------------------------------------------- verify
 
@@ -52,9 +53,20 @@ install: ## Install renderer dependencies (npm ci)
 test: ## Run the renderer test suite, including the upstream contract tests
 	$(NPM) test
 
+.PHONY: test-py
+test-py: ## Run the Python-side wire contract tests
+	uv run --frozen --quiet pytest tests/test_contract.py -q
+
+.PHONY: schema-check
+schema-check: ## Fail if the wire fixtures drift from the Python models
+	uv run --quiet tools/generate_schemas.py --check
+
+.PHONY: generate-schemas
+generate-schemas: ## Regenerate the wire fixtures + manifest from the Python models
+	uv run --quiet tools/generate_schemas.py
+
 .PHONY: check
-check: test ## The gate: tests, then both renderer artifacts
-	$(MAKE) build
+check: test test-py schema-check build ## The gate: renderer + Python tests, schema freshness, both artifacts
 
 .PHONY: lockstep
 lockstep: ## Verify the pinned version matches an installed prefab-ui: make lockstep PREFAB_UI=0.20.2

@@ -10,8 +10,11 @@ can be rebased onto cheaply.
 | File | Change |
 | --- | --- |
 | `renderer/package.json` | Adds `echarts`, pinned to an exact version. |
-| `renderer/src/schemas/chart.ts` | Adds the optional `showLabels` wire property. |
+| `renderer/src/schemas/chart.ts` | Adds the optional `showLabels` property to the bar chart wire schema. |
 | `renderer/vite.config.cdn.ts` | Aliases the single `./charts` specifier in `renderer/src/components/registry.ts` to `renderer/src/echarts/charts.tsx`. |
+| `renderer/vite.config.bundled.ts` | The same alias, for the single-file build. |
+| `src/prefab_ui/components/charts/__init__.py` | Adds `show_labels` to `BarChart`. |
+| `renderer/schemas/fixtures/components/BarChart.json` | Regenerated wire fixture (see below). |
 
 ## Added files
 
@@ -20,9 +23,66 @@ can be rebased onto cheaply.
 | `renderer/src/echarts/charts.tsx` | ECharts-backed drop-in for the chart components. Not-yet-ported charts are re-exported from upstream, so the layer can be ported one type at a time. |
 | `renderer/src/echarts/option.ts` | Pure option builders, free of React so they are testable in a node environment. |
 | `renderer/src/echarts/option.test.ts` | Tests, using ECharts' server-side SVG renderer. |
+| `Makefile` | Upgrade, verification and build targets. |
+| `PREFAB_VERSION` | The upstream release this branch is based on. |
+
+## Layout
+
+| Branch | Contents |
+| --- | --- |
+| `echarts` (default) | The patch, based on upstream tag `v$(cat PREFAB_VERSION)`. |
+| `main` | Pristine upstream, tracking `upstream/main`. |
+
+## Upgrading
+
+Do not merge upstream — rebase onto it:
+
+```bash
+make upgrade VERSION=0.20.3
+```
+
+That fetches tags, rebases `echarts`, records the pin, and runs the full check.
+Conflicts are expected only in the files listed above.
+
+## The renderer and `prefab-ui` stay in lockstep
+
+The **wire format is the contract** between the Python package and the renderer.
+A renderer built from one version against a `prefab-ui` of another fails
+**silently**, not loudly, so the pin is checked rather than assumed:
+
+```bash
+make lockstep PREFAB_UI=0.20.2
+```
+
+## Adding a wire property
+
+The wire schema is **generated from the Python models**, and both sides are
+drift-checked. A property cannot be added by editing the TypeScript schema alone:
+
+1. Add the field to the Python model in `src/prefab_ui/components/charts/`.
+2. Add it to the Zod schema in `renderer/src/schemas/chart.ts`.
+3. `make generate-schemas` — regenerates fixtures and the manifest.
+4. `make check` — runs the Python contract tests, the renderer tests, the schema
+   freshness check, and both builds.
+
+Skipping step 3 fails `make schema-check`, and skipping step 1 means the property
+exists in the wire but nothing can produce it — pydantic's default `extra="ignore"`
+drops unknown arguments silently, so passing it would be a no-op rather than an error.
+
+## Two renderer artifacts
+
+| Artifact | Build | Consumed by |
+| --- | --- | --- |
+| `renderer/dist/app` | `make build-cdn` | `PREFAB_RENDERER_URL` — the normal path |
+| `renderer/dist/bundled/index.html` | `make build-bundled` | Airgapped / bundled mode |
+
+`make build` produces both into `renderer/dist`, which is gitignored. It does
+**not** copy the bundled file over `src/prefab_ui/renderer/app.html`: that is a
+tracked upstream file, and syncing it would add ~7 MB to the delta for a mode
+this fork does not ship. Use `make sync-bundled` if you deliberately need it.
 
 ## Upstream baseline
 
-Forked from tag `v0.20.2`. The renderer and the `prefab-ui` Python package must
-stay **in lockstep**: the wire format is the contract between them, and a
-mismatch fails silently rather than loudly.
+Forked from tag `v0.20.2`. The patch is intentionally based on a release tag
+rather than `main`, so the renderer always corresponds to a published
+`prefab-ui` version.
