@@ -10,21 +10,41 @@ can be rebased onto cheaply.
 | File | Change |
 | --- | --- |
 | `renderer/package.json` | Adds `echarts`, pinned to an exact version. |
-| `renderer/src/schemas/chart.ts` | Adds the optional `showLabels` property to the bar chart wire schema. |
+| `renderer/src/schemas/chart.ts` | Adds the optional `showLabels` property to the shared cartesian wire schema (bar, line, area). |
 | `renderer/vite.config.cdn.ts` | Aliases the single `./charts` specifier in `renderer/src/components/registry.ts` to `renderer/src/echarts/charts.tsx`. |
 | `renderer/vite.config.bundled.ts` | The same alias, for the single-file build. |
-| `src/prefab_ui/components/charts/__init__.py` | Adds `show_labels` to `BarChart`. |
-| `renderer/schemas/fixtures/components/BarChart.json` | Regenerated wire fixture (see below). |
+| `renderer/src/components/registry.ts` | Comment-only: the chart entries no longer describe Recharts. |
+| `src/prefab_ui/components/charts/__init__.py` | Adds `show_labels` to `BarChart`, `LineChart` and `AreaChart`. |
+| `renderer/schemas/fixtures/components/{Bar,Line,Area}Chart.json` | Regenerated wire fixtures (see below). |
+
+Recharts is still a declared dependency because upstream's `ui/chart.tsx` imports it,
+but nothing in the chart path does any more, so it is tree-shaken out of every
+build: the chart chunk went from 950 kB to 593 kB, and no Recharts identifier
+appears in the output.
 
 ## Added files
 
 | File | Purpose |
 | --- | --- |
-| `renderer/src/echarts/charts.tsx` | ECharts-backed drop-in for the chart components. Not-yet-ported charts are re-exported from upstream, so the layer can be ported one type at a time. |
+| `renderer/src/echarts/charts.tsx` | ECharts-backed components for bar, line, area, pie, radar, radial and scatter. `Sparkline` still comes from upstream — it never used Recharts. |
 | `renderer/src/echarts/option.ts` | Pure option builders, free of React so they are testable in a node environment. |
 | `renderer/src/echarts/option.test.ts` | Tests, using ECharts' server-side SVG renderer. |
 | `Makefile` | Upgrade, verification and build targets. |
 | `PREFAB_VERSION` | The upstream release this branch is based on. |
+
+## Behaviours ECharts does differently
+
+Two places where ECharts drops something silently, so the builders compensate and
+say why in comments:
+
+- **Line labels need symbols.** ECharts only draws line labels at symbols and
+  discards them entirely when `showSymbol` is false, so requesting value labels
+  forces symbols on. Upstream draws labels independently of the dots.
+- **Default label text differs.** Bar labels default to the value, line and pie
+  labels do not, so the builders pass the `{c}` value placeholder explicitly.
+
+Angles also differ: Recharts measures them from 3 o'clock, ECharts from
+12 o'clock, so the radial chart converts.
 
 ## Layout
 

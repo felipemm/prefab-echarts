@@ -3,9 +3,8 @@
  *
  * MODIFIED FROM UPSTREAM: this module does not exist upstream. The upstream
  * charts in `components/charts.tsx` are Recharts-backed; this module is an
- * ECharts-backed drop-in that is aliased in place of them, so charts can be
- * ported one type at a time. Not-yet-ported charts are re-exported from the
- * upstream implementation and continue to render through Recharts.
+ * ECharts-backed replacement that is aliased in place of them by the `./charts`
+ * specifier in `components/registry.ts`.
  *
  * Renders with the SVG renderer so chart text (labels, axes) is real DOM text —
  * assertable in tests and crisp at any zoom.
@@ -15,46 +14,82 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import * as echarts from "echarts/core";
-import { BarChart } from "echarts/charts";
+import type { EChartsCoreOption } from "echarts/core";
+import {
+  BarChart,
+  LineChart,
+  PieChart,
+  RadarChart,
+  ScatterChart,
+} from "echarts/charts";
 import {
   GridComponent,
   LegendComponent,
+  PolarComponent,
+  RadarComponent,
   TooltipComponent,
 } from "echarts/components";
 import { SVGRenderer } from "echarts/renderers";
 
-import type { BarChartWire } from "@/schemas/chart";
-import { buildBarChartOption } from "./option";
+import type {
+  AreaChartWire,
+  BarChartWire,
+  LineChartWire,
+  PieChartWire,
+  RadarChartWire,
+  RadialChartWire,
+  ScatterChartWire,
+} from "@/schemas/chart";
+import {
+  buildBarChartOption,
+  buildLineChartOption,
+  buildPieChartOption,
+  buildRadarChartOption,
+  buildRadialChartOption,
+  buildScatterChartOption,
+} from "./option";
 
-// Charts not yet ported still render through the upstream Recharts implementation.
-export {
-  PrefabLineChart,
-  PrefabAreaChart,
-  PrefabPieChart,
-  PrefabRadarChart,
-  PrefabRadialChart,
-  PrefabScatterChart,
-} from "@/components/charts";
 export { PrefabSparkline } from "@/components/sparkline";
-
-export { buildBarChartOption } from "./option";
 
 echarts.use([
   BarChart,
+  LineChart,
+  PieChart,
+  RadarChart,
+  ScatterChart,
   GridComponent,
   LegendComponent,
+  PolarComponent,
+  RadarComponent,
   TooltipComponent,
   SVGRenderer,
 ]);
 
-export function PrefabBarChart({
-  className,
-  ...props
-}: BarChartWire & { className?: string }) {
-  const container = useRef<HTMLDivElement>(null);
-  const height = props.height ?? 300;
+/**
+ * Rebuild the option only when a wire value actually changes.
+ *
+ * Wire props are plain data, so a serialized comparison is sufficient — and
+ * necessary: props arrive as a fresh object on every parent render, and
+ * re-running the effect would dispose and re-initialise the chart, restarting
+ * its animation on every unrelated re-render.
+ */
+function useOption<T>(props: T, build: (props: T) => object): EChartsCoreOption {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => build(props), [JSON.stringify(props)]) as EChartsCoreOption;
+}
 
-  const option = useMemo(() => buildBarChartOption(props), [props]);
+function EChart({
+  option,
+  height,
+  className,
+  kind,
+}: {
+  option: EChartsCoreOption;
+  height: number;
+  className?: string;
+  kind: string;
+}) {
+  const container = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const node = container.current;
@@ -72,15 +107,133 @@ export function PrefabBarChart({
     };
   }, [option]);
 
-  // `data` arrives as a string while a bound query is still unresolved.
-  if (typeof props.data === "string") return null;
-
   return (
     <div
       ref={container}
       className={className}
       style={{ height, width: "100%" }}
-      data-prefab-chart="bar"
+      data-prefab-chart={kind}
+    />
+  );
+}
+
+/** Unresolved bound queries arrive as a string; render nothing until they land. */
+function isPending(data: unknown): boolean {
+  return typeof data === "string";
+}
+
+export function PrefabBarChart({
+  className,
+  ...props
+}: BarChartWire & { className?: string }) {
+  const option = useOption(props, buildBarChartOption);
+  if (isPending(props.data)) return null;
+  return (
+    <EChart
+      option={option}
+      height={props.height ?? 300}
+      className={className}
+      kind="bar"
+    />
+  );
+}
+
+export function PrefabLineChart({
+  className,
+  ...props
+}: LineChartWire & { className?: string }) {
+  const option = useOption(props, (p) =>
+    buildLineChartOption({ ...p, area: false }),
+  );
+  if (isPending(props.data)) return null;
+  return (
+    <EChart
+      option={option}
+      height={props.height ?? 300}
+      className={className}
+      kind="line"
+    />
+  );
+}
+
+export function PrefabAreaChart({
+  className,
+  ...props
+}: AreaChartWire & { className?: string }) {
+  const option = useOption(props, (p) =>
+    buildLineChartOption({ ...p, area: true }),
+  );
+  if (isPending(props.data)) return null;
+  return (
+    <EChart
+      option={option}
+      height={props.height ?? 300}
+      className={className}
+      kind="area"
+    />
+  );
+}
+
+export function PrefabPieChart({
+  className,
+  ...props
+}: PieChartWire & { className?: string }) {
+  const option = useOption(props, buildPieChartOption);
+  if (isPending(props.data)) return null;
+  return (
+    <EChart
+      option={option}
+      height={props.height ?? 300}
+      className={className}
+      kind="pie"
+    />
+  );
+}
+
+export function PrefabRadarChart({
+  className,
+  ...props
+}: RadarChartWire & { className?: string }) {
+  const option = useOption(props, buildRadarChartOption);
+  if (isPending(props.data)) return null;
+  return (
+    <EChart
+      option={option}
+      height={props.height ?? 300}
+      className={className}
+      kind="radar"
+    />
+  );
+}
+
+export function PrefabRadialChart({
+  className,
+  ...props
+}: RadialChartWire & { className?: string }) {
+  const option = useOption(props, buildRadialChartOption);
+  if (isPending(props.data)) return null;
+  return (
+    <EChart
+      option={option}
+      height={props.height ?? 300}
+      className={className}
+      kind="radial"
+    />
+  );
+}
+
+export function PrefabScatterChart({
+  className,
+  ...props
+}: ScatterChartWire & { className?: string }) {
+  const option = useOption(props, buildScatterChartOption);
+  if (isPending(props.data)) return null;
+  return (
+    <EChart
+      option={option}
+      height={props.height ?? 300}
+      className={className}
+      kind="scatter"
     />
   );
 }

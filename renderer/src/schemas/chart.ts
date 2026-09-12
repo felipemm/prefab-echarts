@@ -21,6 +21,7 @@ const cartesianBase = componentBase.extend({
   animate: z.boolean().optional(),
   showGrid: z.boolean().optional(),
   showYAxis: z.boolean().optional(),
+  showLabels: z.boolean().optional(),
   valueFormat: valueFormatSchema.optional(),
 });
 
@@ -29,7 +30,6 @@ export const barChartSchema = cartesianBase.extend({
   stacked: z.boolean().optional(),
   horizontal: z.boolean().optional(),
   barRadius: z.number().int().optional(),
-  showLabels: z.boolean().optional(),
 });
 
 export const lineChartSchema = cartesianBase.extend({

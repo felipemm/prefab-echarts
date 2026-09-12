@@ -5,7 +5,7 @@
  * to JSON with { "type": "Button", ... }. The renderer looks up the
  * type name here to find the corresponding React component.
  *
- * Heavy dependencies (recharts, highlight.js, react-markdown, date-fns)
+ * Heavy dependencies (echarts, highlight.js, react-markdown, date-fns)
  * are lazy-loaded so they only download when a component using them
  * actually appears in the tree.
  */
@@ -137,7 +137,7 @@ const LazySvg = lazyNamed(svgModule, "Svg");
 
 // ── Lazy imports (heavy dependencies) ───────────────────────────────────
 
-// Charts — recharts (~506 KB)
+// Charts — ECharts (aliased over ./charts in the vite configs)
 const chartsModule = () => import("./charts");
 const LazyBarChart = lazyNamed(chartsModule, "PrefabBarChart");
 const LazyLineChart = lazyNamed(chartsModule, "PrefabLineChart");
@@ -218,7 +218,7 @@ export const REGISTRY: Record<string, ComponentType<any>> = {
   TableCell,
   TableCaption,
 
-  // Charts (lazy — recharts)
+  // Charts (lazy — ECharts, see src/echarts)
   BarChart: LazyBarChart,
   LineChart: LazyLineChart,
   AreaChart: LazyAreaChart,
