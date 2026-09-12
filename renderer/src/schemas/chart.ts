@@ -21,6 +21,7 @@ const cartesianBase = componentBase.extend({
   animate: z.boolean().optional(),
   showGrid: z.boolean().optional(),
   showYAxis: z.boolean().optional(),
+  showLabels: z.boolean().optional(),
   valueFormat: valueFormatSchema.optional(),
 });
 
