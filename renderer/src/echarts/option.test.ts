@@ -141,6 +141,21 @@ describe("ECharts bar chart — option construction", () => {
     ]);
   });
 
+  it("uses the supplied palette rather than the CSS variables", () => {
+    // The React layer resolves the palette to parseable colours before the
+    // option is built; an unresolved `oklch()`/`var()` reaching ECharts makes
+    // elements vanish on hover.
+    const option = buildBarChartOption({ data, series, xAxis: "month" }, [
+      "#111111",
+      "#222222",
+    ]);
+
+    expect(option.series.map((s) => s.itemStyle.color)).toEqual([
+      "#111111",
+      "#222222",
+    ]);
+  });
+
   it("treats an unresolved string data placeholder as empty", () => {
     const option = buildBarChartOption({
       data: "{{ q_sales }}",

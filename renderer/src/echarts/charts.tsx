@@ -48,6 +48,7 @@ import {
   buildRadialChartOption,
   buildScatterChartOption,
 } from "./option";
+import { resolveChartPalette } from "./colors";
 
 export { PrefabSparkline } from "@/components/sparkline";
 
@@ -66,16 +67,26 @@ echarts.use([
 ]);
 
 /**
- * Rebuild the option only when a wire value actually changes.
+ * Rebuild the option only when a wire value or the palette actually changes.
  *
  * Wire props are plain data, so a serialized comparison is sufficient — and
  * necessary: props arrive as a fresh object on every parent render, and
  * re-running the effect would dispose and re-initialise the chart, restarting
  * its animation on every unrelated re-render.
+ *
+ * The palette is resolved on every render (five 1x1 canvas reads — cheap) so a
+ * theme change yields a different palette string and therefore a rebuilt option.
  */
-function useOption<T>(props: T, build: (props: T) => object): EChartsCoreOption {
+function useOption<T>(
+  props: T,
+  build: (props: T, palette: string[]) => object,
+): EChartsCoreOption {
+  const palette = resolveChartPalette();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => build(props), [JSON.stringify(props)]) as EChartsCoreOption;
+  return useMemo(() => build(props, palette), [
+    JSON.stringify(props),
+    palette.join(","),
+  ]) as EChartsCoreOption;
 }
 
 function EChart({
@@ -142,8 +153,8 @@ export function PrefabLineChart({
   className,
   ...props
 }: LineChartWire & { className?: string }) {
-  const option = useOption(props, (p) =>
-    buildLineChartOption({ ...p, area: false }),
+  const option = useOption(props, (p, palette) =>
+    buildLineChartOption({ ...p, area: false }, palette),
   );
   if (isPending(props.data)) return null;
   return (
@@ -160,8 +171,8 @@ export function PrefabAreaChart({
   className,
   ...props
 }: AreaChartWire & { className?: string }) {
-  const option = useOption(props, (p) =>
-    buildLineChartOption({ ...p, area: true }),
+  const option = useOption(props, (p, palette) =>
+    buildLineChartOption({ ...p, area: true }, palette),
   );
   if (isPending(props.data)) return null;
   return (

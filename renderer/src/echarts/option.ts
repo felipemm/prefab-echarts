@@ -8,16 +8,27 @@
  */
 
 import { interpolateString } from "@/interpolation";
+import { CHART_COLORS, toEChartsColor } from "./colors";
 
-// Mirrors the palette in components/charts.tsx so ECharts-backed and
-// Recharts-backed charts stay visually consistent while the port proceeds.
-export const CHART_COLORS = [
-  "var(--color-chart-1)",
-  "var(--color-chart-2)",
-  "var(--color-chart-3)",
-  "var(--color-chart-4)",
-  "var(--color-chart-5)",
-];
+export { CHART_COLORS } from "./colors";
+
+/**
+ * Series colour: an explicit colour from the wire wins, otherwise the palette.
+ * Both pass through the resolver, because ECharts derives hover and legend
+ * colours from these and cannot parse `oklch()` or `var()` — an unparseable
+ * colour makes the element vanish on hover.
+ */
+function seriesColor(
+  spec: { color?: string } | undefined,
+  index: number,
+  palette: string[],
+): string {
+  return (
+    toEChartsColor(spec?.color) ??
+    toEChartsColor(palette[index % palette.length]) ??
+    palette[index % palette.length]
+  );
+}
 
 export interface ChartSeriesSpec {
   dataKey: string;
@@ -133,7 +144,7 @@ export function buildBarChartOption({
   showYAxis = true,
   valueFormat = "auto",
   showLabels = false,
-}: BarChartOptionArgs) {
+}: BarChartOptionArgs, palette: string[] = CHART_COLORS) {
   const rows = rowsOf(data);
   const formatValue = getValueFormatter(valueFormat);
 
@@ -151,7 +162,7 @@ export function buildBarChartOption({
       data: rows.map((row) => row[s.dataKey] ?? null),
       stack: stacked ? "total" : undefined,
       itemStyle: {
-        color: s.color ?? CHART_COLORS[i % CHART_COLORS.length],
+        color: seriesColor(s, i, palette),
         borderRadius: horizontal
           ? [0, barRadius, barRadius, 0]
           : [barRadius, barRadius, 0, 0],
@@ -168,7 +179,6 @@ export function buildBarChartOption({
             ? (params: { value: unknown }) => formatValue(params.value)
             : "{c}",
       },
-      emphasis: { focus: "series" as const },
     })),
   };
 }
@@ -208,7 +218,7 @@ export function buildLineChartOption({
   showYAxis = true,
   valueFormat = "auto",
   showLabels = false,
-}: LineChartOptionArgs) {
+}: LineChartOptionArgs, palette: string[] = CHART_COLORS) {
   const rows = rowsOf(data);
   const formatValue = getValueFormatter(valueFormat);
 
@@ -220,7 +230,7 @@ export function buildLineChartOption({
     xAxis: categoryAxis(rows, xAxis, false),
     yAxis: valueAxis(showYAxis, showGrid, formatValue),
     series: series.map((s, i) => {
-      const color = s.color ?? CHART_COLORS[i % CHART_COLORS.length];
+      const color = seriesColor(s, i, palette);
       return {
         type: "line" as const,
         name: s.label ?? s.dataKey,
@@ -276,7 +286,7 @@ export function buildPieChartOption({
   showTooltip = true,
   animate = true,
   valueFormat = "auto",
-}: PieChartOptionArgs) {
+}: PieChartOptionArgs, palette: string[] = CHART_COLORS) {
   const rows = rowsOf(data);
   const formatValue = getValueFormatter(valueFormat);
 
@@ -302,7 +312,7 @@ export function buildPieChartOption({
         data: rows.map((row, i) => ({
           name: String(row[nameKey] ?? ""),
           value: row[dataKey] ?? null,
-          itemStyle: { color: CHART_COLORS[i % CHART_COLORS.length] },
+          itemStyle: { color: palette[i % palette.length] },
         })),
         label: {
           show: showLabel,
@@ -341,7 +351,7 @@ export function buildRadarChartOption({
   showTooltip = true,
   animate = true,
   showGrid = true,
-}: RadarChartOptionArgs) {
+}: RadarChartOptionArgs, palette: string[] = CHART_COLORS) {
   const rows = rowsOf(data);
 
   // ECharts wants indicators on the radar component and each series as an
@@ -369,7 +379,7 @@ export function buildRadarChartOption({
         type: "radar" as const,
         symbol: showDots ? ("circle" as const) : ("none" as const),
         data: series.map((s, i) => {
-          const color = s.color ?? CHART_COLORS[i % CHART_COLORS.length];
+          const color = seriesColor(s, i, palette);
           return {
             name: s.label ?? s.dataKey,
             value: rows.map((row) => Number(row[s.dataKey]) || 0),
@@ -417,7 +427,7 @@ export function buildRadialChartOption({
   showTooltip = true,
   animate = true,
   valueFormat = "auto",
-}: RadialChartOptionArgs) {
+}: RadialChartOptionArgs, palette: string[] = CHART_COLORS) {
   const rows = rowsOf(data);
   const formatValue = getValueFormatter(valueFormat);
 
@@ -447,7 +457,7 @@ export function buildRadialChartOption({
         coordinateSystem: "polar" as const,
         data: rows.map((row, i) => ({
           value: row[dataKey] ?? null,
-          itemStyle: { color: CHART_COLORS[i % CHART_COLORS.length] },
+          itemStyle: { color: palette[i % palette.length] },
         })),
       },
     ],
@@ -478,7 +488,7 @@ export function buildScatterChartOption({
   showTooltip = true,
   animate = true,
   showGrid = true,
-}: ScatterChartOptionArgs) {
+}: ScatterChartOptionArgs, palette: string[] = CHART_COLORS) {
   const rows = rowsOf(data);
 
   // A single series plots every row; multiple series split on the `_series`
@@ -529,7 +539,7 @@ export function buildScatterChartOption({
           }
         : 12,
       itemStyle: {
-        color: s.color ?? CHART_COLORS[i % CHART_COLORS.length],
+        color: seriesColor(s, i, palette),
       },
     })),
   };
