@@ -6,6 +6,7 @@
   "horizontal": false,
   "series": [],
   "showGrid": true,
+  "showLabels": false,
   "showLegend": true,
   "showTooltip": true,
   "showYAxis": true,

@@ -75,6 +75,7 @@ class BarChart(Component):
         show_tooltip: Show tooltip on hover.
         show_grid: Show cartesian grid.
         show_y_axis: Show y-axis with tick labels.
+        show_labels: Show the value of each bar as a label.
         value_format: Pipe format for value-axis ticks and tooltip values.
 
     **Example:**
@@ -122,6 +123,9 @@ class BarChart(Component):
     )
     show_y_axis: bool = Field(
         default=True, alias="showYAxis", description="Show y-axis with tick labels"
+    )
+    show_labels: bool = Field(
+        default=False, alias="showLabels", description="Show value labels on bars"
     )
     value_format: ChartValueFormat = Field(
         default="auto",
